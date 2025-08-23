@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- important: viewport-fit=cover helps use full screen area on modern Android -->
+<!-- Use full screen area on modern Android -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <title>Mobile HTML Editor</title>
 <style>
@@ -46,12 +46,13 @@
 <header><h1>Mobile HTML Editor</h1></header>
 
 <div class="toolbar">
-  <button class="primary" type="button" onclick="doSaveHTML()">💾 Save (.html)</button>
+  <button class="primary" type="button" id="saveBtn">💾 Save (.html)</button>
+  <button type="button" id="openInTabBtn">🔗 Open preview in new tab</button>
   <button class="success" type="button" onclick="saveLocal()">📥 Save Local</button>
   <button type="button" onclick="openLocal()">📂 Open Local</button>
 
   <label class="row">
-    <input id="fileInput" type="file" accept=".html,.htm,.txt" class="hidden" onchange="importFile(event)">
+    <input id="fileInput" type="file" accept=".html,.htm,.txt,.css,.js,.md" class="hidden" onchange="importFile(event)">
     <button type="button" onclick="document.getElementById('fileInput').click()">⬆️ Import</button>
   </label>
 
@@ -60,6 +61,7 @@
   <button class="danger" type="button" onclick="clearEditor()">🗑 Clear</button>
 
   <label class="row"><input type="checkbox" id="autoPrev" checked onclick="saveSettings()"> Auto-Preview</label>
+  <button type="button" id="runBtn" title="Refresh preview (Ctrl/Cmd+Enter)">▶ Run</button>
 </div>
 
 <div class="tabs">
@@ -79,7 +81,10 @@
   </div>
 
   <div id="panePreview" class="hidden">
-    <iframe id="preview" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+    <iframe id="preview"
+      sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals allow-popups-to-escape-sandbox allow-downloads"
+      referrerpolicy="no-referrer">
+    </iframe>
   </div>
 
   <div class="row" style="margin-top:10px">
@@ -102,10 +107,13 @@
   const localList = document.getElementById('localList');
   const backBtn = document.getElementById('backBtn');
   const refreshBtn = document.getElementById('refreshBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const runBtn = document.getElementById('runBtn');
+  const openInTabBtn = document.getElementById('openInTabBtn');
 
-  const LS_DOCS='html_editor_docs_v1';
-  const LS_SETTINGS='html_editor_settings_v1';
-  const LS_LAST='html_editor_last_v1';
+  const LS_DOCS='html_editor_docs_v2';
+  const LS_SETTINGS='html_editor_settings_v2';
+  const LS_LAST='html_editor_last_v2';
 
   // --- Init ---
   (function init(){
@@ -129,7 +137,9 @@
 </head>
 <body>
 <h1>Hello 👋</h1>
-<p>Edit this and Save as .html</p>
+<p>Links, popups, and downloads are enabled in this preview.</p>
+<p><a href="https://example.com" target="_blank">Open a link</a></p>
+<p><a href="data:text/plain,Hello" download="hello.txt">Download test file</a></p>
 <script>console.log('Scripts run inside preview.');<\/script>
 </body>
 </html>`;
@@ -228,10 +238,19 @@
     preview.style.width  = '';
   }
 
-  // --- Reliable Preview: use srcdoc ---
+  // --- Reliable Preview: srcdoc + blob helper for new tab ---
   function renderPreview(){
     const html = editor.value || '';
     preview.srcdoc = html;
+  }
+
+  function openPreviewInNewTab(){
+    const blob = new Blob([editor.value || ''], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    // Some in-app browsers block popups; keep the URL around for a bit then revoke
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    if(!w) alert('Popup blocked. Allow popups for this app to open the preview in a new tab.');
   }
 
   // --- Save (.html): Share first, then download ---
@@ -246,6 +265,7 @@
     const html = editor.value || '';
     const blob = new Blob([html], { type: 'text/html' });
 
+    // Android Share (no permissions)
     if (navigator.canShare && window.File && navigator.share) {
       try {
         const file = new File([blob], name, { type: 'text/html' });
@@ -253,14 +273,17 @@
           await navigator.share({ files: [file], title: name, text: 'HTML file from Mobile HTML Editor' });
           return;
         }
-      } catch (e) {}
+      } catch (e) { /* fall through to download */ }
     }
 
+    // Download fallback
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 10000);
-    alert('If nothing happened, enable "Allow file downloads" in your AppsGeyser app settings.');
+
+    // Heads-up for in-app browsers
+    setTimeout(()=>alert('If nothing downloaded, enable “Allow file downloads” in your app/webview settings, or use “Open preview in new tab” and save from the browser menu.'), 100);
   }
 
   // --- Local docs (inside the app) ---
@@ -296,7 +319,7 @@
     if(idx>=0 && confirm('Delete "'+docs[idx].name+'"?')){ docs.splice(idx,1); writeDocs(docs); }
   }
 
-  // --- Import file (.html/.txt) ---
+  // --- Import file (.html/.txt/.css/.js/.md) ---
   function importFile(ev){
     const f = ev.target.files && ev.target.files[0]; if(!f) return;
     const r = new FileReader();
@@ -344,6 +367,17 @@
     editor.value=''; localStorage.setItem(LS_LAST,'');
     if (autoPrev.checked) renderPreview();
   }
+
+  // --- Keyboard shortcuts & buttons ---
+  saveBtn.addEventListener('click', doSaveHTML);
+  runBtn.addEventListener('click', renderPreview);
+  openInTabBtn.addEventListener('click', openPreviewInNewTab);
+
+  window.addEventListener('keydown', (e)=>{
+    const mod = e.ctrlKey || e.metaKey;
+    if(mod && e.key.toLowerCase()==='s'){ e.preventDefault(); doSaveHTML(); }
+    if(mod && e.key === 'Enter'){ e.preventDefault(); renderPreview(); }
+  });
 </script>
 </body>
 </html>
