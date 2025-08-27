@@ -2,42 +2,113 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- Use full screen area on modern Android -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <title>Mobile HTML Editor</title>
 <style>
-  :root { --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#94a3b8; --accent:#4f46e5; --accent2:#22c55e; --danger:#ef4444; }
+  /* THEME VARIABLES */
+  :root {
+    /* Dark theme (default) */
+    --bg: #0f172a;
+    --panel: #111827;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --border: #1f2937;
+    --btnbg: #1f2937;
+    --gloss: rgba(255,255,255,.35);
+    --shadow: rgba(0,0,0,.45);
+
+    /* Accent gradients (same across themes) */
+    --primary: linear-gradient(180deg,#6a5bff,#4f46e5);
+    --success: linear-gradient(180deg,#47e08a,#22c55e);
+    --info:    linear-gradient(180deg,#66d1ff,#0ea5e9);
+    --warning: linear-gradient(180deg,#ffd166,#f59e0b);
+    --danger:  linear-gradient(180deg,#ff7a7a,#ef4444);
+    --accent:  linear-gradient(180deg,#c084fc,#a855f7);
+  }
+  :root.light {
+    /* Light theme */
+    --bg: #f9fafb;
+    --panel: #ffffff;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --btnbg: #f3f4f6;
+    --gloss: rgba(255,255,255,.8);
+    --shadow: rgba(0,0,0,.15);
+  }
+
   *{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
-  header{padding:10px 12px;background:#0b1220;position:sticky;top:0;z-index:10;border-bottom:1px solid #1f2937}
+  header{padding:10px 12px;background:var(--panel);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border)}
   header h1{font-size:16px;margin:0;font-weight:600}
-  .toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--panel);position:sticky;top:48px;z-index:9;border-bottom:1px solid #1f2937}
-  button{border:none;padding:10px 12px;border-radius:10px;background:#1f2937;color:#e5e7eb;font-size:14px}
-  button:active{opacity:.85}
-  .primary{background:var(--accent)}
-  .success{background:var(--accent2)}
-  .danger{background:var(--danger)}
-  .tabs{display:flex;gap:6px;padding:8px;background:#0b1220;border-bottom:1px solid #1f2937;position:sticky;top:98px;z-index:8}
-  .tab{flex:1;text-align:center;padding:10px;border-radius:10px;background:#131c2e;color:var(--muted)}
-  .tab.active{background:#1d2a44;color:#fff;font-weight:600}
+
+  /* Compact 3-row toolbar */
+  .toolbar{background:var(--panel);position:sticky;top:48px;z-index:9;border-bottom:1px solid var(--border)}
+  .toolbar-row{display:flex;align-items:center;gap:0;padding:0;border-bottom:1px solid var(--border)}
+  .toolbar-row:last-child{border-bottom:none}
+
+  /* 3D toolbar buttons (slightly smaller to avoid clipping) */
+  .tbtn{
+    flex:1 1 0; display:inline-flex; align-items:center; justify-content:center;
+    height:40px; padding:0 8px; min-width:60px; white-space:nowrap;
+    border:1px solid rgba(0,0,0,0); border-radius:0;
+    background: linear-gradient(180deg,var(--gloss),transparent), var(--btnbg);
+    color: var(--text);
+    font-size:13px; font-weight:600; cursor:pointer;
+    box-shadow:0 4px 10px var(--shadow), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:transform .05s ease, box-shadow .05s ease;
+  }
+  .tbtn:active{transform:translateY(2px); box-shadow:0 2px 6px var(--shadow), inset 0 1px 0 rgba(255,255,255,.06)}
+  .toolbar-row .tbtn + .tbtn{border-left:1px solid var(--border)}
+  .toolbar-row .tbtn:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+  .toolbar-row .tbtn:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+
+  /* Color accents (theme-aware with gloss overlay) */
+  .primary{ background:linear-gradient(180deg,var(--gloss),transparent), var(--primary); color:#fff; }
+  .success{ background:linear-gradient(180deg,var(--gloss),transparent), var(--success); color:#082a17; }
+  .info{    background:linear-gradient(180deg,var(--gloss),transparent), var(--info); color:#062432; }
+  .warning{ background:linear-gradient(180deg,var(--gloss),transparent), var(--warning); color:#2b1b00; }
+  .danger{  background:linear-gradient(180deg,var(--gloss),transparent), var(--danger); color:#330808; }
+  .accent{  background:linear-gradient(180deg,var(--gloss),transparent), var(--accent); color:#2b0b33; }
+
+  /* Tabs row */
+  .tabs .tbtn{height:44px;font-size:14px}
+  .tabs .tbtn:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
+  .tabs .tbtn:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
+
+  /* Auto-Preview tiny checkbox in its own slot so row stays gapless */
+  .slot{flex:1 1 0; display:flex; align-items:center; justify-content:center; height:40px; border:1px solid var(--border)}
+  .toolbar-row .slot + .tbtn, .toolbar-row .tbtn + .slot{border-left:1px solid var(--border)}
+  .toolbar-row .slot:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+  .toolbar-row .slot:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+  .tiny-check{
+    appearance:none;width:16px;height:16px;border-radius:5px;border:1px solid var(--border);
+    background:var(--btnbg);cursor:pointer;position:relative;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 2px 6px var(--shadow);
+  }
+  .tiny-check:checked::after{content:"";position:absolute;inset:2px;border-radius:3px;background:#22c55e; box-shadow:inset 0 1px 0 rgba(255,255,255,.35);}
+
+  /* App body */
   .wrap{padding:10px}
-  textarea{width:100%;height:60vh;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:12px;padding:12px;font-size:15px;line-height:1.4}
+  textarea{
+    width:100%;height:60vh;background:var(--panel);color:var(--text);
+    border:1px solid var(--border);border-radius:12px;padding:12px;font-size:15px;line-height:1.4
+  }
   iframe{width:100%;height:70vh;background:#fff;border:none;border-radius:12px}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .grow{flex:1}
-  select, input[type="text"]{background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:10px;padding:10px;font-size:14px}
+  select, input[type="text"]{
+    background:var(--panel);color:var(--text);border:1px solid var(--border);
+    border-radius:10px;padding:10px;font-size:14px
+  }
   small{color:var(--muted)}
-  .hint{padding:8px 12px;color:#cbd5e1}
+  .hint{padding:8px 12px;color:var(--muted)}
   .hidden{display:none}
 
-  /* Fullscreen preview - CSS fallback height (JS will override precisely) */
-  iframe.fullscreen{
-    position:fixed; inset:0;
-    width:100vw; height:100dvh; /* fallback */
-    border-radius:0; z-index:9998; background:#fff;
-  }
-  .fab{position:fixed;z-index:9999;background:#0b1220;color:#fff;border:1px solid #1f2937;box-shadow:0 4px 20px rgba(0,0,0,.35);padding:10px 12px;border-radius:999px;font-size:14px}
+  /* Fullscreen preview */
+  iframe.fullscreen{position:fixed; inset:0; width:100vw; height:100dvh; border-radius:0; z-index:9998; background:#fff;}
+  .fab{position:fixed;z-index:9999;background:var(--panel);color:var(--text);border:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.35);padding:10px 12px;border-radius:999px;font-size:14px}
   #backBtn{top:12px;left:12px}
   #refreshBtn{top:12px;right:12px}
 </style>
@@ -45,28 +116,42 @@
 <body>
 <header><h1>Mobile HTML Editor</h1></header>
 
+<!-- 3-row toolbar -->
 <div class="toolbar">
-  <button class="primary" type="button" id="saveBtn">💾 Save (.html)</button>
-  <button type="button" id="openInTabBtn">🔗 Open preview in new tab</button>
-  <button class="success" type="button" onclick="saveLocal()">📥 Save Local</button>
-  <button type="button" onclick="openLocal()">📂 Open Local</button>
 
-  <label class="row">
-    <input id="fileInput" type="file" accept=".html,.htm,.txt,.css,.js,.md" class="hidden" onchange="importFile(event)">
-    <button type="button" onclick="document.getElementById('fileInput').click()">⬆️ Import</button>
-  </label>
+  <!-- Row 1: TABS ONLY -->
+  <div class="toolbar-row tabs">
+    <div id="tabEdit" class="tbtn primary" onclick="showTab('edit')">✏️ Edit</div>
+    <div id="tabPreview" class="tbtn info" onclick="showTab('preview')">👁️ Preview</div>
+  </div>
 
-  <button type="button" onclick="copyCode()">📋 Copy</button>
-  <button type="button" onclick="pasteCode()">📌 Paste</button>
-  <button class="danger" type="button" onclick="clearEditor()">🗑 Clear</button>
+  <!-- Row 2: file/open/save/import -->
+  <div class="toolbar-row">
+    <button class="tbtn primary" type="button" id="saveBtn" title="Save as .html">💾 Save</button>
+    <button class="tbtn info" type="button" id="openInTabBtn" title="Open preview in new tab">🔗 Open</button>
+    <button class="tbtn success" type="button" onclick="saveLocal()" title="Save file locally">📥 SaveL</button>
+    <button class="tbtn accent" type="button" onclick="openLocal()" title="Open saved local file">📂 OpenL</button>
 
-  <label class="row"><input type="checkbox" id="autoPrev" checked onclick="saveSettings()"> Auto-Preview</label>
-  <button type="button" id="runBtn" title="Refresh preview (Ctrl/Cmd+Enter)">▶ Run</button>
-</div>
+    <!-- Import (hidden file input preserved) -->
+    <label class="tbtn" style="cursor:pointer" title="Import file">
+      ⬆️ Import
+      <input id="fileInput" type="file" accept=".html,.htm,.txt,.css,.js,.md" class="hidden" onchange="importFile(event)">
+    </label>
+  </div>
 
-<div class="tabs">
-  <div id="tabEdit" class="tab active" onclick="showTab('edit')">✏️ Edit</div>
-  <div id="tabPreview" class="tab" onclick="showTab('preview')">👁️ Preview</div>
+  <!-- Row 3: run + edit actions + clear + tiny auto-preview + night mode -->
+  <div class="toolbar-row">
+    <button class="tbtn warning" type="button" id="runBtn" title="Refresh preview (Ctrl/Cmd+Enter)">▶ Run</button>
+    <button class="tbtn" type="button" onclick="copyCode()" title="Copy code">📋 Copy</button>
+    <button class="tbtn" type="button" onclick="pasteCode()" title="Paste code">📌 Paste</button>
+    <button class="tbtn danger" type="button" onclick="clearEditor()" title="Clear editor">🗑 Clear</button>
+
+    <!-- tiny auto-preview checkbox occupies a full slot so row has no gaps -->
+    <div class="slot"><input type="checkbox" id="autoPrev" class="tiny-check" title="Auto-Preview" checked onclick="saveSettings()"></div>
+
+    <!-- Night mode toggle -->
+    <button class="tbtn" type="button" id="themeBtn" title="Light/Dark">🌙</button>
+  </div>
 </div>
 
 <div class="wrap">
@@ -87,10 +172,13 @@
     </iframe>
   </div>
 
-  <div class="row" style="margin-top:10px">
-    <select id="localList" class="grow"></select>
-    <button type="button" onclick="loadSelected()">Open</button>
-    <button class="danger" type="button" onclick="deleteSelected()">Delete</button>
+  <!-- Local files area -->
+  <div class="toolbar-row" style="margin-top:10px;border-radius:12px">
+    <select id="localList" class="grow" title="Saved local files"></select>
+  </div>
+  <div class="toolbar-row" style="border-radius:12px">
+    <button class="tbtn success" type="button" onclick="loadSelected()" title="Open selected local file">📂 Open</button>
+    <button class="tbtn danger" type="button" onclick="deleteSelected()" title="Delete selected local file">🗑 Delete</button>
   </div>
 </div>
 
@@ -99,7 +187,7 @@
 <button id="refreshBtn" class="fab hidden" onclick="renderPreview()">⟳ Refresh</button>
 
 <script>
-  // --- Elements & keys ---
+  // --- Elements & keys (unchanged) ---
   const editor = document.getElementById('editor');
   const preview = document.getElementById('preview');
   const autoPrev = document.getElementById('autoPrev');
@@ -115,7 +203,7 @@
   const LS_SETTINGS='html_editor_settings_v2';
   const LS_LAST='html_editor_last_v2';
 
-  // --- Init ---
+  // --- Init (unchanged) ---
   (function init(){
     const last = localStorage.getItem(LS_LAST);
     if (last) editor.value = last;
@@ -147,9 +235,17 @@
 
     refreshLocalList();
     if (autoPrev.checked) renderPreview();
+
+    // Apply saved theme on load
+    const themeKey = 'editor_theme_v1';
+    const savedTheme = localStorage.getItem(themeKey);
+    const root = document.documentElement;
+    const themeBtn = document.getElementById('themeBtn');
+    if(savedTheme === 'light'){ root.classList.add('light'); themeBtn.textContent='🌞'; }
+    else { root.classList.remove('light'); themeBtn.textContent='🌙'; }
   })();
 
-  // --- Typing autosave + live preview ---
+  // --- Typing autosave + live preview (unchanged) ---
   let t;
   editor.addEventListener('input', () => {
     localStorage.setItem(LS_LAST, editor.value);
@@ -164,16 +260,15 @@
     }));
   }
 
-  // ----- Fullscreen size fix -----
+  // ----- Fullscreen size fix (unchanged) -----
   function setFullscreenSize(){
-    // Use visualViewport if available to avoid bottom cut
     const vh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
     const vw = (window.visualViewport && window.visualViewport.width) ? window.visualViewport.width : window.innerWidth;
     preview.style.height = vh + 'px';
     preview.style.width  = vw + 'px';
   }
 
-  // --- Tabs & fullscreen preview ---
+  // --- Tabs & fullscreen preview (unchanged logic) ---
   function showTab(which){
     const header = document.querySelector('header');
     const toolbar = document.querySelector('.toolbar');
@@ -192,13 +287,8 @@
       preview.classList.remove('fullscreen');
       backBtn.classList.add('hidden');
       refreshBtn.classList.add('hidden');
-      tabEdit.classList.add('active');
-      tabPreview.classList.remove('active');
-
-      // remove dynamic sizing listeners
-      removeViewportListeners();
-
-      try{ preview.removeAttribute('srcdoc'); preview.src='about:blank'; }catch(e){}
+      tabEdit.classList.add('primary');
+      tabPreview.classList.remove('primary');
     } else {
       renderPreview();
       header.classList.add('hidden');
@@ -209,10 +299,9 @@
       preview.classList.add('fullscreen');
       backBtn.classList.remove('hidden');
       refreshBtn.classList.remove('hidden');
-      tabEdit.classList.remove('active');
-      tabPreview.classList.add('active');
+      tabEdit.classList.remove('primary');
+      tabPreview.classList.add('primary');
 
-      // set size exactly & keep it updated
       setFullscreenSize();
       addViewportListeners();
     }
@@ -222,7 +311,7 @@
     window.addEventListener('resize', setFullscreenSize);
     if (window.visualViewport){
       window.visualViewport.addEventListener('resize', setFullscreenSize);
-      window.visualViewport.addEventListener('scroll', setFullscreenSize); // accounts for UI slide-in
+      window.visualViewport.addEventListener('scroll', setFullscreenSize);
     }
     screen.orientation?.addEventListener?.('change', setFullscreenSize);
   }
@@ -233,12 +322,11 @@
       window.visualViewport.removeEventListener('scroll', setFullscreenSize);
     }
     screen.orientation?.removeEventListener?.('change', setFullscreenSize);
-    // clear explicit sizing so edit mode layout is normal
     preview.style.height = '';
     preview.style.width  = '';
   }
 
-  // --- Reliable Preview: srcdoc + blob helper for new tab ---
+  // --- Reliable Preview (unchanged) ---
   function renderPreview(){
     const html = editor.value || '';
     preview.srcdoc = html;
@@ -248,12 +336,11 @@
     const blob = new Blob([editor.value || ''], {type:'text/html'});
     const url = URL.createObjectURL(blob);
     const w = window.open(url, '_blank');
-    // Some in-app browsers block popups; keep the URL around for a bit then revoke
     setTimeout(()=>URL.revokeObjectURL(url), 60000);
     if(!w) alert('Popup blocked. Allow popups for this app to open the preview in a new tab.');
   }
 
-  // --- Save (.html): Share first, then download ---
+  // --- Save (.html): Share first, then download (unchanged) ---
   async function doSaveHTML(){
     let name = (fileNameInput.value || '').trim();
     if (!name) {
@@ -265,7 +352,6 @@
     const html = editor.value || '';
     const blob = new Blob([html], { type: 'text/html' });
 
-    // Android Share (no permissions)
     if (navigator.canShare && window.File && navigator.share) {
       try {
         const file = new File([blob], name, { type: 'text/html' });
@@ -273,20 +359,18 @@
           await navigator.share({ files: [file], title: name, text: 'HTML file from Mobile HTML Editor' });
           return;
         }
-      } catch (e) { /* fall through to download */ }
+      } catch (e) { /* fall through */ }
     }
 
-    // Download fallback
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 10000);
 
-    // Heads-up for in-app browsers
     setTimeout(()=>alert('If nothing downloaded, enable “Allow file downloads” in your app/webview settings, or use “Open preview in new tab” and save from the browser menu.'), 100);
   }
 
-  // --- Local docs (inside the app) ---
+  // --- Local docs (unchanged) ---
   function readDocs(){ try{return JSON.parse(localStorage.getItem(LS_DOCS)||'[]')}catch(e){return[]} }
   function writeDocs(a){ localStorage.setItem(LS_DOCS, JSON.stringify(a)); refreshLocalList(); }
   function refreshLocalList(){
@@ -301,7 +385,7 @@
     const docs=readDocs(); const now=Date.now();
     const idx=docs.findIndex(d=>d.name===name);
     const doc={name, html: editor.value||'', ts: now};
-    if(idx>=0) docs[idx]=doc; else docs.unshift(doc);
+    if(idx>=0)docs[idx]=doc; else docs.unshift(doc);
     writeDocs(docs);
     alert('Saved locally inside the app.');
   }
@@ -319,7 +403,7 @@
     if(idx>=0 && confirm('Delete "'+docs[idx].name+'"?')){ docs.splice(idx,1); writeDocs(docs); }
   }
 
-  // --- Import file (.html/.txt/.css/.js/.md) ---
+  // --- Import file (unchanged) ---
   function importFile(ev){
     const f = ev.target.files && ev.target.files[0]; if(!f) return;
     const r = new FileReader();
@@ -332,7 +416,7 @@
     r.readAsText(f); ev.target.value = '';
   }
 
-  // --- Clipboard helpers ---
+  // --- Clipboard helpers (unchanged) ---
   async function copyCode(){
     try{ await navigator.clipboard.writeText(editor.value||''); alert('Copied to clipboard.'); }
     catch(e){
@@ -361,14 +445,14 @@
     }
   }
 
-  // --- Clear editor ---
+  // --- Clear editor (unchanged) ---
   function clearEditor(){
     if (!confirm('Clear the editor?')) return;
     editor.value=''; localStorage.setItem(LS_LAST,'');
     if (autoPrev.checked) renderPreview();
   }
 
-  // --- Keyboard shortcuts & buttons ---
+  // --- Keyboard shortcuts & buttons (unchanged) ---
   saveBtn.addEventListener('click', doSaveHTML);
   runBtn.addEventListener('click', renderPreview);
   openInTabBtn.addEventListener('click', openPreviewInNewTab);
@@ -378,6 +462,23 @@
     if(mod && e.key.toLowerCase()==='s'){ e.preventDefault(); doSaveHTML(); }
     if(mod && e.key === 'Enter'){ e.preventDefault(); renderPreview(); }
   });
+
+  // THEME TOGGLE (consistent light/dark)
+  (function(){
+    const btn = document.getElementById('themeBtn'); if(!btn) return;
+    const key = 'editor_theme_v1';
+    const root = document.documentElement;
+    const apply = (mode)=>{
+      if(mode==='light'){ root.classList.add('light'); btn.textContent='🌞'; }
+      else{ root.classList.remove('light'); btn.textContent='🌙'; }
+    };
+    apply(localStorage.getItem(key)==='light'?'light':'dark');
+    btn.addEventListener('click',()=>{
+      const to = root.classList.contains('light') ? 'dark' : 'light';
+      localStorage.setItem(key,to);
+      apply(to);
+    });
+  })();
 </script>
 </body>
 </html>
